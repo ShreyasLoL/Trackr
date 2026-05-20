@@ -1,28 +1,26 @@
 import { NavLink } from 'react-router-dom';
 
+const linkBase = 'text-sm text-gray-600 hover:text-gray-900';
+const activeClass = 'text-sm text-gray-900 font-medium';
+
 export default function Navbar() {
-  const linkClass = ({ isActive }) =>
-    `relative pb-1 text-sm font-medium tracking-wide transition-colors duration-200 ${
-      isActive
-        ? 'text-accent after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-accent after:rounded-full'
-        : 'text-text-muted hover:text-text'
-    }`;
+  const navLinkClass = ({ isActive }) => (isActive ? activeClass : linkBase);
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-border">
-      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-        <span className="text-lg font-semibold tracking-tight text-text">
+    <nav className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+      <div className="flex items-center gap-6">
+        <NavLink to="/" className="text-lg font-bold text-gray-900 tracking-tight">
           Trackr
-        </span>
-        <div className="flex items-center gap-8">
-          <NavLink to="/" end className={linkClass}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/charts" className={linkClass}>
-            Charts
-          </NavLink>
+        </NavLink>
+        <div className="flex items-center gap-4">
+          <NavLink to="/dashboard" className={navLinkClass}>Dashboard</NavLink>
+          <NavLink to="/gym" className={navLinkClass}>Gym</NavLink>
+          <NavLink to="/nutrition" className={navLinkClass}>Nutrition</NavLink>
         </div>
       </div>
+      <NavLink to="/settings" className={navLinkClass}>
+        ⚙ Settings
+      </NavLink>
     </nav>
   );
 }

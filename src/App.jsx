@@ -1,44 +1,50 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Dashboard from './pages/Dashboard';
-import Charts from './pages/Charts';
-import Onboarding from './pages/Onboarding';
-import useProfile from './hooks/useProfile';
-import useLogs from './hooks/useLogs';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AppProvider, useApp } from './contexts/AppContext'
+import { GymProvider } from './contexts/GymContext'
+import { NutritionProvider } from './contexts/NutritionContext'
+import { CardioProvider } from './contexts/CardioContext'
+import Navbar from './components/Navbar'
+import Onboarding from './pages/Onboarding'
+import Dashboard from './pages/Dashboard'
+import Gym from './pages/Gym'
+import Nutrition from './pages/Nutrition'
+import Settings from './pages/Settings'
 
-export default function App() {
-  const { profile, saveProfile, hasOnboarded } = useProfile();
-  const { getLog, saveLog, getAllLogs } = useLogs();
+function AppRoutes() {
+  const { hasOnboarded } = useApp()
 
   if (!hasOnboarded) {
-    return <Onboarding onComplete={saveProfile} />;
+    return <Onboarding />
   }
 
   return (
+    <>
+      <Navbar />
+      <main>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/gym" element={<Gym />} />
+          <Route path="/nutrition" element={<Nutrition />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </>
+  )
+}
+
+export default function App() {
+  return (
     <BrowserRouter>
-      <div className="min-h-screen bg-cream">
-        <Navbar />
-        <main>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Dashboard
-                  profile={profile}
-                  getLog={getLog}
-                  saveLog={saveLog}
-                />
-              }
-            />
-            <Route
-              path="/charts"
-              element={
-                <Charts profile={profile} getAllLogs={getAllLogs} />
-              }
-            />
-          </Routes>
-        </main>
-      </div>
+      <AppProvider>
+        <GymProvider>
+          <NutritionProvider>
+            <CardioProvider>
+              <AppRoutes />
+            </CardioProvider>
+          </NutritionProvider>
+        </GymProvider>
+      </AppProvider>
     </BrowserRouter>
-  );
+  )
 }

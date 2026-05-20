@@ -1,108 +1,205 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { useApp } from '../contexts/AppContext'
 
-export default function Onboarding({ onComplete }) {
-  const [unit, setUnit] = useState('kg');
-  const [goalWeight, setGoalWeight] = useState('');
+export default function Onboarding() {
+  const { updateProfile, logWeight } = useApp()
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const profile = {
-      unit,
-      ...(goalWeight ? { goalWeight: parseFloat(goalWeight) } : {}),
-    };
-    onComplete(profile);
-  };
+  const [name, setName] = useState('')
+  const [birthday, setBirthday] = useState('')
+  const [heightMode, setHeightMode] = useState('cm')
+  const [heightCm, setHeightCm] = useState('')
+  const [heightFt, setHeightFt] = useState('')
+  const [heightIn, setHeightIn] = useState('')
+  const [weight, setWeight] = useState('')
+  const [goalWeight, setGoalWeight] = useState('')
+  const [weightUnit, setWeightUnit] = useState('kg')
+
+  const isValid = name.trim() && birthday && weight
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (!isValid) return
+
+    let finalHeightCm
+    if (heightMode === 'cm') {
+      finalHeightCm = parseFloat(heightCm) || 0
+    } else {
+      const ft = parseFloat(heightFt) || 0
+      const inches = parseFloat(heightIn) || 0
+      finalHeightCm = Math.round(ft * 30.48 + inches * 2.54)
+    }
+
+    let weightKg = parseFloat(weight)
+    if (weightUnit === 'lbs') {
+      weightKg = weightKg / 2.20462
+    }
+    weightKg = Math.round(weightKg * 10) / 10
+
+    let goalWeightKg = null
+    if (goalWeight) {
+      goalWeightKg = parseFloat(goalWeight)
+      if (weightUnit === 'lbs') {
+        goalWeightKg = goalWeightKg / 2.20462
+      }
+      goalWeightKg = Math.round(goalWeightKg * 10) / 10
+    }
+
+    updateProfile({
+      name: name.trim(),
+      birthday,
+      height: { value: finalHeightCm, unit: heightMode === 'cm' ? 'cm' : 'ft' },
+      weightUnit,
+      goalWeight: goalWeightKg,
+      onboarded: true,
+    })
+    logWeight(weightKg)
+  }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Animated entrance */}
-        <div
-          className="bg-card rounded-2xl shadow-sm border border-border/50 p-8 space-y-6"
-          style={{ animation: 'fadeUp 0.5s ease-out' }}
-        >
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-semibold text-text tracking-tight">
-              Welcome to Trackr
-            </h1>
-            <p className="text-sm text-text-muted leading-relaxed">
-              Set up your preferences to get started tracking your health.
-            </p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-6">
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">Welcome to Trackr</h1>
+        <p className="text-sm text-gray-500 mb-6">Set up your profile to get started.</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              placeholder="Your name"
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Unit selection */}
-            <div className="space-y-2">
-              <label className="block text-xs font-medium uppercase tracking-wider text-text-muted">
-                Weight unit
-              </label>
-              <div className="flex gap-3">
-                {['kg', 'lbs'].map((u) => (
-                  <button
-                    key={u}
-                    type="button"
-                    onClick={() => setUnit(u)}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-all cursor-pointer ${
-                      unit === u
-                        ? 'bg-accent text-white border-accent shadow-sm'
-                        : 'bg-cream border-border text-text-muted hover:border-accent/40 hover:text-text'
-                    }`}
-                  >
-                    {u.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Birthday */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Birthday *</label>
+            <input
+              type="date"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+            />
+          </div>
 
-            {/* Goal weight */}
-            <div className="space-y-2">
-              <label
-                htmlFor="goal-weight"
-                className="block text-xs font-medium uppercase tracking-wider text-text-muted"
+          {/* Height */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setHeightMode('cm')}
+                className={`px-3 py-1 rounded text-sm ${heightMode === 'cm' ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
               >
-                Goal weight{' '}
-                <span className="normal-case tracking-normal font-normal">(optional)</span>
-              </label>
-              <input
-                id="goal-weight"
-                type="number"
-                step="0.1"
-                min="0"
-                placeholder={`e.g. ${unit === 'kg' ? '70' : '154'}`}
-                value={goalWeight}
-                onChange={(e) => setGoalWeight(e.target.value)}
-                className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-text placeholder:text-text-muted/60 focus:border-accent"
-              />
+                cm
+              </button>
+              <button
+                type="button"
+                onClick={() => setHeightMode('ft')}
+                className={`px-3 py-1 rounded text-sm ${heightMode === 'ft' ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
+              >
+                ft/in
+              </button>
             </div>
+            {heightMode === 'cm' ? (
+              <input
+                type="number"
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Height in cm"
+              />
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={heightFt}
+                  onChange={(e) => setHeightFt(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  placeholder="Feet"
+                />
+                <input
+                  type="number"
+                  value={heightIn}
+                  onChange={(e) => setHeightIn(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  placeholder="Inches"
+                />
+              </div>
+            )}
+          </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full bg-accent hover:bg-accent-hover text-white font-medium py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer"
-            >
-              Get Started
-            </button>
-          </form>
-        </div>
+          {/* Weight unit toggle */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Weight unit</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setWeightUnit('kg')}
+                className={`px-3 py-1 rounded text-sm ${weightUnit === 'kg' ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
+              >
+                KG
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeightUnit('lbs')}
+                className={`px-3 py-1 rounded text-sm ${weightUnit === 'lbs' ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
+              >
+                LBS
+              </button>
+            </div>
+          </div>
 
-        <p className="text-center text-xs text-text-muted mt-4">
+          {/* Weight */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Current weight ({weightUnit}) *
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              placeholder={`Weight in ${weightUnit}`}
+            />
+          </div>
+
+          {/* Goal weight */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Goal weight ({weightUnit}) — optional
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={goalWeight}
+              onChange={(e) => setGoalWeight(e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              placeholder="Optional"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={!isValid}
+            className={`w-full py-2 rounded text-sm font-medium ${
+              isValid
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Get Started
+          </button>
+        </form>
+
+        <p className="text-xs text-gray-400 text-center mt-4">
           All data is stored locally on your device.
         </p>
       </div>
-
-      <style>{`
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(12px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
-  );
+  )
 }
