@@ -7,17 +7,17 @@ import { useMacros } from '../hooks/useMacros'
 import { useStreak } from '../hooks/useStreak'
 import StatCard from '../components/StatCard'
 import MacroBar from '../components/MacroBar'
-import { todayKey, formatDate, getLast30Days, getLast7Days } from '../utils/dateHelpers'
+import { todayKey, formatDate, getLast30Days, getLast7Days, getLast30DaysData } from '../utils/dateHelpers'
 import { weightInUnit } from '../utils/calculations'
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
+  ComposedChart, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 
 export default function Dashboard() {
   const { profile, logWeight, updateProfile, getLatestWeight } = useApp()
   const { getRecentWorkouts, workouts } = useGym()
-  const { updateWater, getTodayLog: getNutritionTodayLog, logs: nutritionLogs } = useNutrition()
+  const { updateWater, getTodayLog: getNutritionTodayLog, logs: nutritionLogs, mealTemplates } = useNutrition()
   const { logDaily, getTodayLog: getCardioTodayLog, dailyLog: cardioDailyLog } = useCardio()
   const { getTodayMacros, getProgress } = useMacros()
   const { streak } = useStreak()
@@ -77,6 +77,17 @@ export default function Dashboard() {
         weight: weightInUnit(profile.weightLog[d], profile.weightUnit),
       }))
   }, [profile.weightLog, profile.weightUnit, last30])
+
+  // Calories vs weight chart data
+  const last30DaysData = useMemo(() => {
+    return getLast30DaysData(profile.weightLog, nutritionLogs, mealTemplates)
+  }, [profile.weightLog, nutritionLogs, mealTemplates])
+
+  const hasEnoughDualData = useMemo(() => {
+    let count = 0
+    last30DaysData.forEach((d) => { if (d.weight != null && d.calories != null) count++ })
+    return count >= 3
+  }, [last30DaysData])
 
   // Steps chart data (last 7 days)
   const stepsChartData = useMemo(() => {
@@ -270,7 +281,6 @@ export default function Dashboard() {
                   <span className="font-medium text-gray-800">{w.name}</span>
                   <span className="text-gray-400 ml-2">{formatDate(w.date)}</span>
                 </div>
-                <span className="text-gray-500">{w.durationMinutes} min</span>
               </div>
             ))}
           </div>
@@ -295,6 +305,59 @@ export default function Dashboard() {
                 <Tooltip />
                 <Line type="monotone" dataKey="weight" stroke="#3B82F6" dot={false} strokeWidth={2} />
               </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Calories vs Weight chart */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            Calories vs Weight (30 Days)
+          </h2>
+          {!hasEnoughDualData ? (
+            <p className="text-sm text-gray-400">Start logging to see trends.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <ComposedChart data={last30DaysData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis
+                  yAxisId="weight"
+                  orientation="left"
+                  domain={['auto', 'auto']}
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => `${v}kg`}
+                />
+                <YAxis
+                  yAxisId="calories"
+                  orientation="right"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => `${v}`}
+                />
+                <Tooltip
+                  formatter={(value, name) =>
+                    name === 'weight' ? [`${value}kg`, 'Weight'] : [`${value} kcal`, 'Calories']
+                  }
+                />
+                <Legend />
+                <Line
+                  yAxisId="weight"
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls={true}
+                  name="weight"
+                />
+                <Bar
+                  yAxisId="calories"
+                  dataKey="calories"
+                  fill="#FCD34D"
+                  opacity={0.6}
+                  name="calories"
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           )}
         </div>

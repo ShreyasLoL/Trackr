@@ -88,3 +88,48 @@ export function calculateStreak(loggedDates) {
   }
   return streak;
 }
+
+export function getLast30DaysData(weightLog, nutritionLogs, mealTemplates) {
+  const days = getLast30Days();
+
+  return days.map((dateKey) => {
+    const weight = weightLog?.[dateKey] != null ? weightLog[dateKey] : null;
+
+    let calories = null;
+    const dayLog = nutritionLogs?.[dateKey];
+    if (dayLog) {
+      const meals = Array.isArray(dayLog) ? dayLog : dayLog.meals || [];
+      let total = 0;
+      meals.forEach((meal) => {
+        const items = meal.items || [];
+        items.forEach((item) => {
+          if (item.manualMacros) {
+            total += item.manualMacros.calories || 0;
+          } else {
+            const template = (mealTemplates || []).find((t) =>
+              (t.items || []).some((ti) => ti.name === item.name)
+            );
+            if (template) {
+              const tplItem = template.items.find((ti) => ti.name === item.name);
+              if (tplItem) {
+                const qty = item.quantity || 0;
+                if (tplItem.trackingType === 'per100g' && tplItem.per100g) {
+                  total += (qty / 100) * (tplItem.per100g.calories || 0);
+                } else if (tplItem.trackingType === 'perUnit' && tplItem.perUnit) {
+                  total += qty * (tplItem.perUnit.calories || 0);
+                }
+              }
+            }
+          }
+        });
+      });
+      calories = Math.round(total);
+    }
+
+    return {
+      date: dateKey.slice(5), // "MM-DD"
+      weight,
+      calories,
+    };
+  });
+}

@@ -2,10 +2,14 @@ import { useState, useRef } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { useCardio } from '../contexts/CardioContext'
 import { calculateAge, calculateStreak, todayKey } from '../utils/dateHelpers'
-import { calculateBMI, bmiCategory, calculateTDEE, weightInUnit } from '../utils/calculations'
+import {
+  calculateBMI, bmiCategory, calculateTDEE, weightInUnit,
+  calculateBMR, calculateTDEEFromBMR, calculateTargetCalories,
+  getGoalModeLabel, getGoalModeDelta,
+} from '../utils/calculations'
 
 export default function Settings() {
-  const { profile, updateProfile, getLatestWeight } = useApp()
+  const { profile, updateProfile, getLatestWeight, calculatedTDEE } = useApp()
   const { logDaily, dailyLog } = useCardio()
 
   // Profile fields
@@ -25,8 +29,13 @@ export default function Settings() {
   const [fatTarget, setFatTarget] = useState(profile.fatTarget || '')
   const [stepTarget, setStepTarget] = useState(profile.stepTarget || 10000)
 
-  // Activity level for TDEE
-  const [activityLevel, setActivityLevel] = useState('moderate')
+  // Activity level for TDEE (Calculated Info section — local preview)
+  const [activityLevel, setActivityLevel] = useState(profile.activityLevel || 'moderate')
+
+  // Goal mode, profile activity level, auto-calories
+  const [goalMode, setGoalMode] = useState(profile.goalMode || 'fat_loss')
+  const [profileActivityLevel, setProfileActivityLevel] = useState(profile.activityLevel || 'moderate')
+  const [autoCalories, setAutoCalories] = useState(profile.autoCalories !== false)
 
   // Import/export
   const importRef = useRef(null)
@@ -69,6 +78,9 @@ export default function Settings() {
       carbTarget: parseInt(carbTarget) || null,
       fatTarget: parseInt(fatTarget) || null,
       stepTarget: parseInt(stepTarget) || 10000,
+      goalMode,
+      activityLevel: profileActivityLevel,
+      autoCalories,
     })
   }
 
@@ -267,6 +279,91 @@ export default function Settings() {
           Goals
         </h2>
         <div className="space-y-3">
+          {/* Goal mode */}
+          <div>
+            <label className="text-sm text-gray-600 block mb-1">Goal mode</label>
+            <div className="flex flex-wrap gap-1">
+              {['extreme_fat_loss', 'fat_loss', 'maintenance', 'weight_gain', 'extreme_weight_gain'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setGoalMode(mode)}
+                  className={`px-2 py-1 rounded text-xs ${goalMode === mode ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
+                >
+                  {getGoalModeLabel(mode)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {goalMode === 'extreme_fat_loss' && 'Assumes: gym 5x/week + cardio + 10k+ steps daily. Aggressive cut.'}
+              {goalMode === 'fat_loss' && 'Assumes: gym 4x/week + moderate activity. Steady cut.'}
+              {goalMode === 'maintenance' && 'Assumes: current activity level maintained.'}
+              {goalMode === 'weight_gain' && 'Assumes: gym 4x/week, eating in surplus. Lean bulk.'}
+              {goalMode === 'extreme_weight_gain' && 'Assumes: gym 5x/week, high surplus. Aggressive bulk.'}
+            </p>
+          </div>
+
+          {/* Activity level */}
+          <div>
+            <label className="text-sm text-gray-600 block mb-1">Activity level</label>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { key: 'sedentary', label: 'Sedentary' },
+                { key: 'light', label: 'Light' },
+                { key: 'moderate', label: 'Moderate' },
+                { key: 'active', label: 'Active' },
+                { key: 'very_active', label: 'Very Active' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setProfileActivityLevel(key)}
+                  className={`px-2 py-1 rounded text-xs ${profileActivityLevel === key ? 'bg-blue-600 text-white' : 'border border-gray-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-update calories toggle */}
+          <div className="flex items-center gap-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoCalories}
+                onChange={(e) => setAutoCalories(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+            <span className="text-sm text-gray-600">Auto-update calories</span>
+          </div>
+          <p className="text-xs text-gray-400 -mt-2">
+            When enabled, your calorie target updates automatically every time you log a new weight.
+          </p>
+
+          {/* TDEE info box */}
+          {calculatedTDEE != null && (
+            <div className="bg-gray-50 border border-gray-200 rounded p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Current TDEE estimate</span>
+                <span className="font-medium">{calculatedTDEE} kcal/day</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Goal mode adjustment</span>
+                <span className="font-medium">{getGoalModeDelta(goalMode)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Suggested target</span>
+                <span className="font-medium">{calculateTargetCalories(calculatedTDEE, goalMode)} kcal/day</span>
+              </div>
+              <p className="text-xs text-gray-400 pt-1">
+                This is calculated automatically. Your actual target above is updated each time you log weight.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="text-sm text-gray-600 block mb-1">Goal weight ({weightUnit})</label>
             <input

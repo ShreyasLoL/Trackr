@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import Gym from './pages/Gym'
 import Nutrition from './pages/Nutrition'
 import Settings from './pages/Settings'
+import Heatmap from './pages/Heatmap'
 
 function AppRoutes() {
   const { hasOnboarded } = useApp()
@@ -26,6 +27,7 @@ function AppRoutes() {
           <Route path="/gym" element={<Gym />} />
           <Route path="/nutrition" element={<Nutrition />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/heatmap" element={<Heatmap />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -341,7 +341,7 @@ export default function Gym() {
                       <span className="font-medium">{w.name}</span>
                       <span className="text-gray-400 ml-2">{formatDate(w.date)}</span>
                     </div>
-                    <span className="text-gray-500">{w.durationMinutes} min · {w.exercises.length} exercises</span>
+                    <span className="text-gray-500">{w.exercises.length} exercises</span>
                   </div>
                 ))}
               </div>
